@@ -1,8 +1,12 @@
 # Mercari-Price-Suggestion-Challenge
 （一）比赛介绍
 比赛主要是一个商品价格的回归预测问题，比赛提供了用户在二手商品交易网站平台上卖方提供的商品相关信息以及一些物品的价格，通过提取特征训练回归模型从而预测没有价格的物品。比赛提供的字段有文本类的字段包括商品名称、商品所属的类别名称，商品所属的品牌名以及商品描述等，另外还有一些数值类型的字段包括是否包邮，以及商品自身的状况等。
+
+
 （二）比赛整体的方案
 比赛总共采用了两种解决方案：一种是采用RNN and Ridge两种算法，并采用bagging策略，针对两种模型预测的结果最后求取加权和得到最后的结果。另外一种也是采用bagging融合的策略，不过采用的是FTRL+FM+LGB三种模型。
+
+
 （三）方案一介绍：
 首先来讲第一种方案：
 1）停用词过滤：首先利用nltk文本处理包中的stopwords对文本类数据字段（商品名称和商品描述）做一个简单的停用词过滤【这步最后没有用】
@@ -14,26 +18,26 @@
 7）序列长度截断补长保持相同长度作为RNN的输入：主要对商品名称和商品描述文本数值序列进行pad_sequences处理，转换为numpy类型的数组【其余其他字段转换为numpy的array】
 8）每个字段都作为RNN的一个输入（InputLayer），然后Embedding，然后经过GRU层和Flatten层，最后将经过GRU层和Flatten层后的输出Concatenate到一起形成一个dense层，最后经过几层的dense和dropout层后输出到最后一个神经元的层，得到预测的输出。
 【这里需要注意几个网络层：
-model.add(Embedding(1000, 64, input_length=10))
-# the model will take as input an integer matrix of size (batch, input_length).
-# the largest integer (i.e. word index) in the input should be no larger than 999 (vocabulary size).
-# now model.output_shape == (None, 10, 64), where None is the batch dimension.
-# input_length: Length of input sequences, when it is constant. This argument is required if you are going to connect Flatten then Dense layers upstream (without it, the shape of the dense outputs cannot be computed).这里的大小是10
-# input_dim: int > 0. Size of the vocabulary, i.e. maximum integer index + 1.这里的大小是1000
-# output_dim: int >= 0. Dimension of the dense embedding.这里的大小是64
-# input_array = np.random.randint(1000, size=(32, 10))输入层的大小就是32*10，每个元素在0~999之间
-keras.layers.core.Flatten() Flatten层用来将输入“压平”，即把多维的输入一维化，常用在从卷积层到全连接层的过渡。Flatten不影响batch的大小。
-使用GRU而不用LSTM原因：GRUs are faster than LSTMs
-# as the first layer in a Sequential model
-model = Sequential()
-model.add(LSTM(32, input_shape=(10, 64)))
-model.input_shape：(None, 10, 64)  形如（samples，timesteps，input_dim）的3D张量
-model.output_shape：(None, 32)  形如（samples，output_dim）的2D张量
-# to stack recurrent layers, you must use return_sequences=True # on any recurrent layer that feeds into another recurrent layer. # note that you only need to specify the input size on the first layer. 
-model = Sequential() 
-model.add(LSTM(64,input_shape=(10,64),return_sequences=True)) 
-model.add(LSTM(32, return_sequences=True)) 
-model.add(LSTM(10))】
+%model.add(Embedding(1000, 64, input_length=10))
+% the model will take as input an integer matrix of size (batch, input_length).
+% the largest integer (i.e. word index) in the input should be no larger than 999 (vocabulary size).
+% now model.output_shape == (None, 10, 64), where None is the batch dimension.
+% input_length: Length of input sequences, when it is constant. This argument is required if you are going to connect Flatten then Dense %layers upstream (without it, the shape of the dense outputs cannot be computed).这里的大小是10
+% input_dim: int > 0. Size of the vocabulary, i.e. maximum integer index + 1.这里的大小是1000
+% output_dim: int >= 0. Dimension of the dense embedding.这里的大小是64
+% input_array = np.random.randint(1000, size=(32, 10))输入层的大小就是32*10，每个元素在0~999之间
+%keras.layers.core.Flatten() Flatten层用来将输入“压平”，即把多维的输入一维化，常用在从卷积层到全连接层的过渡。Flatten不影响batch的大小。
+%使用GRU而不用LSTM原因：GRUs are faster than LSTMs
+% as the first layer in a Sequential model
+%model = Sequential()
+%model.add(LSTM(32, input_shape=(10, 64)))
+%model.input_shape：(None, 10, 64)  形如（samples，timesteps，input_dim）的3D张量
+%model.output_shape：(None, 32)  形如（samples，output_dim）的2D张量
+% to stack recurrent layers, you must use return_sequences=True # on any recurrent layer that feeds into another recurrent layer. # note %that you only need to specify the input size on the first layer. 
+%model = Sequential() 
+%model.add(LSTM(64,input_shape=(10,64),return_sequences=True)) 
+%model.add(LSTM(32, return_sequences=True)) 
+%model.add(LSTM(10))】
 9）RNN模型训练：设置epoch、初始学习率、最终学习率以及衰减学习率等
 10）向量化所有字段数据（Ridge）：利用CountVectorizer和TfidfVectorizer函数将文本数据字段进行向量化转换，并用pipeline包提供的FeatureUnion类来进行整体并行处理。最后得到sparse matrix。
 11）训练Ridge和RidgeCV模型（2-fold）
